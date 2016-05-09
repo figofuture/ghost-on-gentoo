@@ -1,0 +1,38 @@
+#!/sbin/runscript
+
+DESC="Ghost"
+NAME=ghost
+GHOST_ROOT=/home/figo/ghost
+DAEMON=/usr/bin/node
+DAEMON_ARGS="${GHOST_ROOT}/index.js"
+PIDFILE=/var/run/${NAME}.pid
+SCRIPTNAME=/etc/init.d/${NAME}
+extra_started_commands="reload"
+export NODE_ENV=production
+
+start() {
+    ebegin "Starting ${DESC} ${NAME}"
+    start-stop-daemon --start --quiet \
+        --chdir ${GHOST_ROOT} --background \
+        --pidfile ${PIDFILE} --exec ${DAEMON} --test > /dev/null \
+        || return 1
+    start-stop-daemon --start --quiet \
+        --chdir ${GHOST_ROOT} --background \
+        --make-pidfile --pidfile ${PIDFILE} --exec ${DAEMON} -- ${DAEMON_ARGS}
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping ${DESC} ${NAME}"
+    start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 \
+        --pidfile ${PIDFILE} --exec ${DAEMON}
+    rm -f ${PIDFILE}
+    eend $?
+}
+
+reload() {
+    ebegin "Restarting ${DESC} ${NAME}"
+    start-stop-daemon --signal HUP --quiet --pidfile ${PIDFILE} \
+        --exec ${DAEMON}
+    eend $?
+}
